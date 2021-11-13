@@ -2,6 +2,7 @@ import datetime
 import os
 import pprint
 import time
+import json
 import threading
 import torch as th
 from types import SimpleNamespace as SN
@@ -33,12 +34,34 @@ def run(_run, _config, _log):
                                        width=1)
     _log.info("\n\n" + experiment_params + "\n")
 
-    # configure tensorboard logger
-    unique_token = "{}__{}".format(args.name, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    # log config
+    if str(args.env).startswith('sc2'):
+        unique_token = "{}_{}_{}_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), alg_name, args.env, args.env_args['map_name'])
+    else:
+        unique_token = "{}_{}_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), alg_name, args.env)
     args.unique_token = unique_token
+
+    if str(args.env).startswith('sc2'):
+        json_output_direc = os.path.join(dirname(dirname(abspath(__file__))), "results", args.env, args.env_args['map_name'], alg_name)
+    else:
+        json_output_direc = os.path.join(dirname(dirname(abspath(__file__))), "results", args.env, alg_name)
+    json_exp_direc = os.path.join(json_output_direc, unique_token + '.json')
+    json_logging = {'config': vars(args)} 
+    with open(json_exp_direc, 'w') as f:
+        json.dump(json_logging, f, ensure_ascii=False)
+
+    # configure tensorboard logger
+    if len(args.comment) > 0:
+        alg_name = '{}_{}'.format(args.name, args.comment)
+    else:
+        alg_name = args.name
+    
+    if str(args.env).startswith('sc2'):
+        tb_logs_direc = os.path.join(dirname(dirname(abspath(__file__))), "results", "tb_logs", args.env, args.env_args['map_name'], alg_name)
+    else:
+        tb_logs_direc = os.path.join(dirname(dirname(abspath(__file__))), "results", "tb_logs", args.env, alg_name)
+    tb_exp_direc = os.path.join(tb_logs_direc, unique_token)
     if args.use_tensorboard:
-        tb_logs_direc = os.path.join(dirname(dirname(abspath(__file__))), "results", "tb_logs")
-        tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(unique_token)
         logger.setup_tb(tb_exp_direc)
 
     # sacred is on by default
@@ -46,6 +69,13 @@ def run(_run, _config, _log):
 
     # Run and train
     run_sequential(args=args, logger=logger)
+
+    if args.use_tensorboard:
+        print(f'Export tensorboard scalars at {tb_exp_direc} to json file {json_exp_direc}')
+        data_logging = export_scalar_to_json(tb_exp_direc, json_output_direc, args)
+        json_logging.update(data_logging)
+        with open(json_exp_direc, 'w') as f:
+            json.dump(json_logging, f, ensure_ascii=False)
 
     # Clean up after finishing
     print("Exiting Main")
@@ -238,3 +268,17 @@ def args_sanity_check(config, _log):
         config["test_nepisode"] = (config["test_nepisode"]//config["batch_size_run"]) * config["batch_size_run"]
 
     return config
+
+def export_scalar_to_json(tensorboard_path, output_path, args):
+    from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+    os.makedirs(output_path, exist_ok=True)
+    filename = os.path.basename(tensorboard_path)
+    output_path = os.path.join(output_path, filename + '.json')
+    summary = EventAccumulator(tensorboard_path).Reload()
+    scalar_list = summary.Tags()['scalars']
+    stone_dict = {}
+    stone_dict['seed'] = args.seed
+    for scalar_name in scalar_list:
+        stone_dict['_'.join([scalar_name, 'T'])] = [ scalar.step for scalar in summary.Scalars(scalar_name) ]
+        stone_dict[scalar_name] = [ scalar.value for scalar in summary.Scalars(scalar_name) ]
+    return stone_dict

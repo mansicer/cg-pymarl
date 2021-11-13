@@ -35,6 +35,16 @@ def my_main(_run, _config, _log):
     run(_run, config, _log)
 
 
+def _get_comment(params, arg_name):
+    comment = ''
+    for _i, _v in enumerate(params):
+        if _v.split("=")[0] == arg_name:
+            comment = _v.split("=")[1]
+            del params[_i]
+            break
+    return comment
+
+
 def _get_config(params, arg_name, subfolder):
     config_name = None
     for _i, _v in enumerate(params):
@@ -71,8 +81,6 @@ def config_copy(config):
 
 
 if __name__ == '__main__':
-    th.cuda.set_device(0)
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     params = deepcopy(sys.argv)
 
     # Get the defaults from default.yaml
@@ -83,11 +91,13 @@ if __name__ == '__main__':
             assert False, "default.yaml error: {}".format(exc)
 
     # Load algorithm and env base configs
+    comment = _get_comment(params, '--comment')
     env_config = _get_config(params, "--env-config", "envs")
     alg_config = _get_config(params, "--config", "algs")
     # config_dict = {**config_dict, **env_config, **alg_config}
     config_dict = recursive_dict_update(config_dict, env_config)
     config_dict = recursive_dict_update(config_dict, alg_config)
+    config_dict['comment'] = comment
 
     # now add all the config to sacred
     ex.add_config(config_dict)
