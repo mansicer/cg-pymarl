@@ -35,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--map', nargs='+', help='decide maps to run if choose sc2 env', default=['MMM2'])
     parser.add_argument('-a', '--alg', nargs='+', help='decide algorithms to run', default=['oda_limited_comm'])
     parser.add_argument('-s', '--seeds', nargs='+', help='specify given seeds', default=[])
-    parser.add_argument('-r', '--repeat', type=int, help='repeat n times for a given algorithm', default=2)
+    parser.add_argument('-r', '--repeat', type=int, help='repeat n times for a given algorithm', default=1)
     parser.add_argument('-o', '--others', nargs='+', help='other configs', default=[])
 
     args = parser.parse_args()
