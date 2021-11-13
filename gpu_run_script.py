@@ -1,6 +1,7 @@
 import os
 import datetime
 import time
+import pynvml
 from argparse import ArgumentParser
 
 alg_config = '--config={alg}'
@@ -11,6 +12,21 @@ comment_config = '--comment={comment}'
 output_folder = './output'
 if not os.path.exists(output_folder):
     os.mkdir(output_folder)
+
+def choose_gpu():
+    pynvml.nvmlInit()
+    count = pynvml.nvmlDeviceGetCount()
+    if count < 2:
+        return 0
+    gpu_no = 0
+    max_free_mem = 0
+    for i in range(count):
+        handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+        meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        if meminfo.free > max_free_mem:
+            gpu_no = i
+            max_free_mem = meminfo.free
+    return gpu_no
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -34,7 +50,9 @@ if __name__ == '__main__':
                         map=map_name, 
                         time=datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
                     )
-                    command = 'nohup python src/main.py {} {} {} {} {} > {} 2>&1 &'.format(
+                    gpu_no = choose_gpu()
+                    command = 'CUDA_VISIBLE_DEVICES={} nohup python src/main.py {} {} {} {} {} > {} 2>&1 &'.format(
+                        gpu_no,
                         comment_config.format(comment=args.comment), 
                         alg_config.format(alg=alg_name), 
                         env_config.format(env=args.env), 
@@ -56,7 +74,9 @@ if __name__ == '__main__':
                     env=args.env, 
                     time=datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
                 )
-                command = 'nohup python src/main.py {} {} {} {} > {} 2>&1 &'.format(
+                gpu_no = choose_gpu()
+                command = 'CUDA_VISIBLE_DEVICES={} nohup python src/main.py {} {} {} {} > {} 2>&1 &'.format(
+                    gpu_no,
                     comment_config.format(comment=args.comment),
                     alg_config.format(alg=alg_name), 
                     env_config.format(env=args.env), 
