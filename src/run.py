@@ -35,6 +35,11 @@ def run(_run, _config, _log):
     _log.info("\n\n" + experiment_params + "\n")
 
     # log config
+    if len(args.comment) > 0:
+        alg_name = '{}_{}'.format(args.name, args.comment)
+    else:
+        alg_name = args.name
+    
     if str(args.env).startswith('sc2'):
         unique_token = "{}_{}_{}_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), alg_name, args.env, args.env_args['map_name'])
     else:
@@ -51,11 +56,6 @@ def run(_run, _config, _log):
         json.dump(json_logging, f, ensure_ascii=False)
 
     # configure tensorboard logger
-    if len(args.comment) > 0:
-        alg_name = '{}_{}'.format(args.name, args.comment)
-    else:
-        alg_name = args.name
-    
     if str(args.env).startswith('sc2'):
         tb_logs_direc = os.path.join(dirname(dirname(abspath(__file__))), "results", "tb_logs", args.env, args.env_args['map_name'], alg_name)
     else:
