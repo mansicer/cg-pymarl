@@ -39,7 +39,7 @@ class CASECRNNAgent(nn.Module):
 
 class CASECPairRNNAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(PairRNNAgent, self).__init__()
+        super(CASECPairRNNAgent, self).__init__()
         self.args = args
 
         self.fc1 = nn.Linear(input_shape, args.pair_rnn_hidden_dim)
