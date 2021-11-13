@@ -51,6 +51,7 @@ def run(_run, _config, _log):
     else:
         json_output_direc = os.path.join(dirname(dirname(abspath(__file__))), "results", args.env, alg_name)
     json_exp_direc = os.path.join(json_output_direc, unique_token + '.json')
+    os.makedirs(json_output_direc, exist_ok=True)
     json_logging = {'config': vars(args)} 
     with open(json_exp_direc, 'w') as f:
         json.dump(json_logging, f, ensure_ascii=False)
